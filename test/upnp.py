@@ -1,42 +1,73 @@
 import os
 import subprocess
-import tkinter as tk
-from tkinter import messagebox
 
 # Ruta local donde tienes el archivo MSI de Squid
-local_squid_msi = os.path.join(os.getcwd(), "squid.msi")
-# Ruta de instalación de Squid en Windows
+local_squid_msi = os.path.join(
+    os.getcwd(), "squid.msi"
+)  # Asegúrate de que el archivo MSI esté en tu proyecto
+
+# Ruta de instalación de Squid en Windows (puedes especificarla si es necesaria)
 install_path = "C:\\Squid"
+
 
 def install_squid_msi():
     print("Instalando Squid desde archivo MSI...")
+
+    # Verifica si el archivo existe
     if not os.path.exists(local_squid_msi):
-        messagebox.showerror("Error", f"El archivo {local_squid_msi} no se encuentra.")
+        print(f"El archivo {local_squid_msi} no se encuentra.")
         return
 
+    # Ejecuta el comando msiexec para instalar Squid MSI
     install_command = (
         f'msiexec /i "{local_squid_msi}" /quiet INSTALLDIR="{install_path}"'
     )
     result = subprocess.run(install_command, shell=True)
 
     if result.returncode == 0:
-        messagebox.showinfo("Éxito", "Squid instalado exitosamente.")
+        print("Squid instalado exitosamente.")
     else:
-        messagebox.showerror("Error", f"Error durante la instalación de Squid. Código de salida: {result.returncode}")
+        print(
+            f"Error durante la instalación de Squid. Código de salida: {result.returncode}"
+        )
 
-def on_install_button_click():
+
+def configure_squid():
+    print("Configurando Squid...")
+    squid_conf = os.path.join(install_path, "etc", "squid.conf")
+
+    # Cambiar configuración de Squid (esto es solo un ejemplo básico)
+    with open(squid_conf, "w") as f:
+        f.write("http_port 3128\n")
+        f.write("acl all src all\n")
+        f.write("http_access allow all\n")
+
+    print("Configuración completada.")
+
+
+def start_squid():
+    print("Iniciando Squid...")
+    squid_exe = os.path.join(install_path, "sbin", "squid.exe")
+
+    # Iniciar el servicio de Squid
+    result = subprocess.run([squid_exe, "-N", "-d1"])
+
+    if result.returncode == 0:
+        print("Squid iniciado exitosamente.")
+    else:
+        print(f"Error al iniciar Squid. Código de salida: {result.returncode}")
+
+
+def open_firewall_port():
+    print("Abriendo el puerto 3128 en el Firewall de Windows...")
+    subprocess.run(
+        'netsh advfirewall firewall add rule name="Allow Squid" dir=in action=allow protocol=TCP localport=3128'
+    )
+    print("Puerto 3128 abierto en el Firewall.")
+
+
+if __name__ == "__main__":
     install_squid_msi()
-
-# Configuración de la interfaz gráfica
-root = tk.Tk()
-root.title("Instalador de Squid")
-
-# Botón para iniciar la instalación
-install_button = tk.Button(root, text="Iniciar Instalación de Squid", command=on_install_button_click)
-install_button.pack(pady=20)
-
-# Configura el tamaño de la ventana
-root.geometry("300x150")
-
-# Ejecuta la interfaz gráfica
-root.mainloop()
+    configure_squid()
+    start_squid()
+    open_firewall_port()
